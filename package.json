@@ -1,0 +1,39 @@
+{
+  "name": "@alexanderniebuhr/prettier-plugin-unocss",
+  "description": "",
+  "version": "0.0.1",
+  "author": {
+    "name": "Alexander Niebuhr",
+    "email": "tech@nbhr.io"
+  },
+  "bugs": {
+    "url": "https://github.com/alexanderniebuhr/prettier-plugin-unocss/issues"
+  },
+  "dependencies": {
+    "@unocss/preset-uno": "0.25.1"
+  },
+  "devDependencies": {
+    "@alexanderniebuhr/style": "1.1.0",
+    "esbuild": "0.14.23",
+    "prettier": "2.5.1"
+  },
+  "files": [
+    "dist"
+  ],
+  "homepage": "https://github.com/alexanderniebuhr/prettier-plugin-unocss",
+  "keywords": [
+    "plugin",
+    "prettier",
+    "unocss"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexanderniebuhr/prettier-plugin-unocss"
+  },
+  "scripts": {
+    "build": "esbuild src/index.js --format=cjs --outfile=dist/index.js",
+    "prepublishOnly": "npm run build"
+  }
+}
