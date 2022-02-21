@@ -10,12 +10,17 @@
     "url": "https://github.com/alexanderniebuhr/prettier-plugin-unocss/issues"
   },
   "dependencies": {
-    "@unocss/preset-uno": "0.25.1"
+    "@unocss/preset-uno": "0.25.1",
+    "import-fresh": "3.3.0",
+    "prettier": "2.5.1"
   },
   "devDependencies": {
     "@alexanderniebuhr/style": "1.1.0",
+    "@unocss/core": "0.26.0",
+    "@unocss/preset-typography": "0.26.0",
     "esbuild": "0.14.23",
-    "prettier": "2.5.1"
+    "prettier-plugin-svelte": "2.6.0",
+    "unocss": "0.26.0"
   },
   "files": [
     "dist"

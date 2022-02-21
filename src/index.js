@@ -1,31 +1,35 @@
-// const resolvedConfig = resolveConfig(config)
-// const presets = resolvedConfig.presets
-// function mergePresets<T extends 'rules'>(key: T, presets, config): Required<UserConfig>[T] {
-//   return uniq([
-//     ...presets.flatMap(p => toArray(p[key] || []) as any[]),
-//     ...toArray(config[key] || []) as any[],
-//   ])
-// }
-
-// const rules = mergePresets('rules', resolvedConfig.presets, config)
-
-import prettierParserHTML from 'prettier/parser-html'
 import presetUno from '@unocss/preset-uno'
+import requireFresh from 'import-fresh'
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+import prettierParserHTML from 'prettier/parser-html'
 
-const rules = presetUno().rules
+let sveltePlugin = null
+let rules
+let unoConfigPath = resolve(process.cwd(), 'unocss.config.cjs')
 
-// let check = 'bg-gray-400'
-// console.log(
-//   rules.findIndex((rule) => {
-//     if (typeof rule[0] == 'string') {
-//       return new RegExp(rule[0]).test(check)
-//     } else {
-//       return rule[0].test(check)
-//     }
-//   })
-// )
+function uniq(value) {
+  return Array.from(new Set(value))
+}
+function toArray(value) {
+  return Array.isArray(value) ? value : [value]
+}
 
-export const options = {}
+if (existsSync(unoConfigPath)) {
+  console.log('config exists')
+
+  let unoConfig = requireFresh(unoConfigPath)
+  console.log(unoConfig)
+
+  rules = uniq([
+    ...unoConfig.presets.flatMap((p) => toArray(p['rules'] || [])),
+    ...toArray(unoConfig['rules'] || []),
+  ])
+} else {
+  console.log('config does not exist')
+
+  rules = presetUno().rules
+}
 
 function sortUtillities(a, b) {
   if (a.includes(':')) return 1
@@ -45,8 +49,29 @@ function sortUtillities(a, b) {
     }
   }
 
-  return bSortIndex < aSortIndex ? 1 : -1
+  if (bSortIndex < aSortIndex) {
+    return 1
+  } else if (bSortIndex == aSortIndex) {
+    return a < b ? -1 : 1
+  } else {
+    return -1
+  }
 }
+
+function format(input, regex) {
+  const output = input.replace(regex, (match) => {
+    const groups = []
+    const groupRegex = /([!\w][\w:_/-]*?):\(([\w\s/-]*?)\)/g
+    const utils = match.replace(groupRegex, (group, variant, utillities) => {
+      groups.push(`${variant}:(${utillities.split(' ').sort(sortUtillities).join(' ')})`)
+      return ''
+    })
+    return (utils.split(' ').sort(sortUtillities).join(' ') + ' ' + groups.join(' ')).trim()
+  })
+  return output
+}
+
+export const options = {}
 
 export const parsers = {
   html: {
@@ -55,53 +80,40 @@ export const parsers = {
     locStart: prettierParserHTML.parsers.html.locStart,
     locEnd: prettierParserHTML.parsers.html.locEnd,
     preprocess: (text, options) => {
-      // global regex to replace all classes with their order
-      const regex = /(?<=class=")(.*?)(?=")/g
-      const result = text.replace(regex, (match) => {
-        const groups = []
-        const groupRegex = /([!\w][\w:_/-]*?):\(([\w\s/-]*?)\)/g
-        const utils = match.replace(groupRegex, (group, variant, utillities) => {
-          groups.push(`${variant}:(${utillities.split(' ').sort(sortUtillities).join(' ')})`)
-          return ''
-        })
-        return utils.split(' ').sort(sortUtillities).join(' ') + ' ' + groups.join(' ')
-      })
-
-      return result
+      return format(text, /(?<=class=")(.*?)(?=")/g)
     },
   },
-  // vue: {
-  //   astFormat:prettierParserHTML.parsers.vue.astFormat,
-  //   parse: prettierParserHTML.parsers.vue.parse,
-  //   locStart: prettierParserHTML.parsers.vue.locStart,
-  //   locEnd:  prettierParserHTML.parsers.vue.locEnd,
-  //   preprocess: (text, options) => {
+  vue: {
+    astFormat: prettierParserHTML.parsers.vue.astFormat,
+    parse: prettierParserHTML.parsers.vue.parse,
+    locStart: prettierParserHTML.parsers.vue.locStart,
+    locEnd: prettierParserHTML.parsers.vue.locEnd,
+    preprocess: (text, options) => {
+      return format(text, /(?<=class=")(.*?)(?=")/g)
+    },
+  },
+  svelte: {
+    astFormat: 'svelte-ast',
+    parse: (text, parsers, options) => {
+      return sveltePlugin.parsers.svelte.parse(text, parsers, options)
+    },
+    locStart: (node) => {
+      return node.start
+    },
+    locEnd: (node) => {
+      return node.end
+    },
+    preprocess: (text, options) => {
+      sveltePlugin = options.plugins.find(
+        (plugin) => plugin.parsers.svelte && plugin.name.includes('prettier-plugin-svelte')
+      )
 
-  //     // global regex to replace all classes with their order
-  //     const regex = /(?<=class=")(.*?)(?=")/g
-  //     const result = text.replace(regex, (match) => {
-  //       return "needs to be sorted"
-  //     })
-
-  //     return result
-  //   },
-  // },
-  // svelte: {
-  //   astFormat:prettierParserHTML.parsers.html.astFormat,
-  //   parse: prettierParserHTML.parsers.html.parse,
-  //   locStart: prettierParserHTML.parsers.html.locStart,
-  //   locEnd:  prettierParserHTML.parsers.html.locEnd,
-  //   preprocess: (text, options) => {
-
-  //     // global regex to replace all classes with their order
-  //     const regex = /(?<=class=")(.*?)(?=")/g
-  //     const result = text.replace(regex, (match) => {
-  //       return match.split(" ").sort().join(" ")
-  //     })
-
-  //     return result
-  //   },
-  // },
+      return format(
+        sveltePlugin.parsers.svelte.preprocess(text, options),
+        /(?<=class=")(.*?)(?=")/g
+      )
+    },
+  },
   // css: createParser(prettierParserPostCSS.parsers.css, transformCss),
   // scss: createParser(prettierParserPostCSS.parsers.scss, transformCss),
   // less: createParser(prettierParserPostCSS.parsers.less, transformCss),
