@@ -48,6 +48,8 @@ function sortUtillities(a, b) {
   return bSortIndex < aSortIndex ? 1 : -1
 }
 
+let sveltePlugin = null
+
 export const parsers = {
   html: {
     astFormat: prettierParserHTML.parsers.html.astFormat,
@@ -86,22 +88,36 @@ export const parsers = {
   //     return result
   //   },
   // },
-  // svelte: {
-  //   astFormat:prettierParserHTML.parsers.html.astFormat,
-  //   parse: prettierParserHTML.parsers.html.parse,
-  //   locStart: prettierParserHTML.parsers.html.locStart,
-  //   locEnd:  prettierParserHTML.parsers.html.locEnd,
-  //   preprocess: (text, options) => {
+  svelte: {
+    astFormat: 'svelte-ast',
+    parse: (text, parsers, options) => {
+      return sveltePlugin.parsers.svelte.parse(text, parsers, options)
+    },
+    locStart: (node) => {
+      return node.start
+    },
+    locEnd: (node) => {
+      return node.end
+    },
+    preprocess: (text, options) => {
+      // console.log(options.plugins)
+      sveltePlugin = options.plugins.find(
+        (plugin) => plugin.parsers.svelte && plugin.name.includes('prettier-plugin-svelte')
+      )
+      // console.log(sveltePlugin.parsers.svelte.preprocess(text, options))
 
-  //     // global regex to replace all classes with their order
-  //     const regex = /(?<=class=")(.*?)(?=")/g
-  //     const result = text.replace(regex, (match) => {
-  //       return match.split(" ").sort().join(" ")
-  //     })
+      // return sveltePlugin.parsers.svelte.preprocess(text, options)
+      // global regex to replace all classes with their order
+      const regex = /(?<=class=")(.*?)(?=")/g
+      const result = sveltePlugin.parsers.svelte
+        .preprocess(text, options)
+        .replace(regex, (match) => {
+          return match.split(' ').sort().join(' ')
+        })
 
-  //     return result
-  //   },
-  // },
+      return result
+    },
+  },
   // css: createParser(prettierParserPostCSS.parsers.css, transformCss),
   // scss: createParser(prettierParserPostCSS.parsers.scss, transformCss),
   // less: createParser(prettierParserPostCSS.parsers.less, transformCss),
