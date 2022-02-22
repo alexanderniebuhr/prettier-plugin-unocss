@@ -60,6 +60,8 @@ function sortUtillities(a, b) {
 
 function format(input, regex) {
   const output = input.replace(regex, (match) => {
+    if (match.includes('{')) return match
+    if (match.includes('}')) return match
     const groups = []
     const groupRegex = /([!\w][\w:_/-]*?):\(([\w\s/-]*?)\)/g
     const utils = match.replace(groupRegex, (group, variant, utillities) => {
