@@ -1,34 +1,17 @@
 import presetUno from '@unocss/preset-uno'
 import requireFresh from 'import-fresh'
 import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { resolveConfigFile } from 'prettier'
 import prettierParserHTML from 'prettier/parser-html'
 
 let sveltePlugin = null
 let rules
-let unoConfigPath = resolve(process.cwd(), 'unocss.config.cjs')
-
 function uniq(value) {
   return Array.from(new Set(value))
 }
 function toArray(value) {
   return Array.isArray(value) ? value : [value]
-}
-
-if (existsSync(unoConfigPath)) {
-  console.log('config exists')
-
-  let unoConfig = requireFresh(unoConfigPath)
-  console.log(unoConfig)
-
-  rules = uniq([
-    ...unoConfig.presets.flatMap((p) => toArray(p['rules'] || [])),
-    ...toArray(unoConfig['rules'] || []),
-  ])
-} else {
-  console.log('config does not exist')
-
-  rules = presetUno().rules
 }
 
 function sortUtillities(a, b) {
@@ -58,7 +41,29 @@ function sortUtillities(a, b) {
   }
 }
 
-function format(input, regex) {
+function format(input, regex, options) {
+  let prettierConfigPath = resolveConfigFile.sync(options.filepath)
+  let baseDir = prettierConfigPath
+    ? dirname(prettierConfigPath)
+    : process.env.VSCODE_CWD ?? process.cwd()
+  let unoConfigPath = resolve(baseDir, 'unocss.config.cjs')
+
+  if (existsSync(unoConfigPath)) {
+    console.log('config exists')
+
+    let unoConfig = requireFresh(unoConfigPath)
+    console.log(unoConfig)
+
+    rules = uniq([
+      ...unoConfig.presets.flatMap((p) => toArray(p['rules'] || [])),
+      ...toArray(unoConfig['rules'] || []),
+    ])
+  } else {
+    console.log('config does not exist')
+
+    rules = presetUno().rules
+  }
+
   const output = input.replace(regex, (match) => {
     if (match.includes('{')) return match
     if (match.includes('}')) return match
@@ -73,7 +78,91 @@ function format(input, regex) {
   return output
 }
 
-export const options = {}
+function makeChoice(choice) {
+  return { value: choice, description: choice }
+}
+
+export const options = {
+  svelteSortOrder: {
+    since: '0.6.0',
+    category: 'Svelte',
+    type: 'choice',
+    default: 'options-scripts-markup-styles',
+    description: 'Sort order for scripts, markup, and styles',
+    choices: [
+      makeChoice('options-scripts-markup-styles'),
+      makeChoice('options-scripts-styles-markup'),
+      makeChoice('options-markup-styles-scripts'),
+      makeChoice('options-markup-scripts-styles'),
+      makeChoice('options-styles-markup-scripts'),
+      makeChoice('options-styles-scripts-markup'),
+      makeChoice('scripts-options-markup-styles'),
+      makeChoice('scripts-options-styles-markup'),
+      makeChoice('markup-options-styles-scripts'),
+      makeChoice('markup-options-scripts-styles'),
+      makeChoice('styles-options-markup-scripts'),
+      makeChoice('styles-options-scripts-markup'),
+      makeChoice('scripts-markup-options-styles'),
+      makeChoice('scripts-styles-options-markup'),
+      makeChoice('markup-styles-options-scripts'),
+      makeChoice('markup-scripts-options-styles'),
+      makeChoice('styles-markup-options-scripts'),
+      makeChoice('styles-scripts-options-markup'),
+      makeChoice('scripts-markup-styles-options'),
+      makeChoice('scripts-styles-markup-options'),
+      makeChoice('markup-styles-scripts-options'),
+      makeChoice('markup-scripts-styles-options'),
+      makeChoice('styles-markup-scripts-options'),
+      makeChoice('styles-scripts-markup-options'),
+      // Deprecated, keep in 2.x for backwards-compatibility. svelte:options will be moved to the top
+      makeChoice('scripts-markup-styles'),
+      makeChoice('scripts-styles-markup'),
+      makeChoice('markup-styles-scripts'),
+      makeChoice('markup-scripts-styles'),
+      makeChoice('styles-markup-scripts'),
+      makeChoice('styles-scripts-markup'),
+    ],
+  },
+  svelteStrictMode: {
+    since: '0.7.0',
+    category: 'Svelte',
+    type: 'boolean',
+    default: false,
+    description: 'More strict HTML syntax: self-closed tags, quotes in attributes',
+  },
+  svelteBracketNewLine: {
+    since: '0.6.0',
+    category: 'Svelte',
+    type: 'boolean',
+    description: 'Put the `>` of a multiline element on a new line',
+    deprecated: '2.5.0',
+  },
+  svelteAllowShorthand: {
+    since: '1.0.0',
+    category: 'Svelte',
+    type: 'boolean',
+    default: true,
+    description:
+      'Option to enable/disable component attribute shorthand if attribute name and expressions are same',
+  },
+  svelteIndentScriptAndStyle: {
+    since: '1.2.0',
+    category: 'Svelte',
+    type: 'boolean',
+    default: true,
+    description:
+      'Whether or not to indent the code inside <script> and <style> tags in Svelte files',
+  },
+}
+
+export const languages = [
+  {
+    name: 'svelte',
+    parsers: ['svelte'],
+    extensions: ['.svelte'],
+    vscodeLanguageIds: ['svelte'],
+  },
+]
 
 export const parsers = {
   html: {
@@ -82,7 +171,7 @@ export const parsers = {
     locStart: prettierParserHTML.parsers.html.locStart,
     locEnd: prettierParserHTML.parsers.html.locEnd,
     preprocess: (text, options) => {
-      return format(text, /(?<=class=")(.*?)(?=")/g)
+      return format(text, /(?<=class=")(.*?)(?=")/g, options)
     },
   },
   vue: {
@@ -91,7 +180,7 @@ export const parsers = {
     locStart: prettierParserHTML.parsers.vue.locStart,
     locEnd: prettierParserHTML.parsers.vue.locEnd,
     preprocess: (text, options) => {
-      return format(text, /(?<=class=")(.*?)(?=")/g)
+      return format(text, /(?<=class=")(.*?)(?=")/g, options)
     },
   },
   svelte: {
@@ -112,7 +201,8 @@ export const parsers = {
 
       return format(
         sveltePlugin.parsers.svelte.preprocess(text, options),
-        /(?<=class=")(.*?)(?=")/g
+        /(?<=class=")(.*?)(?=")/g,
+        options
       )
     },
   },
