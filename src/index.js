@@ -1,12 +1,13 @@
 import presetUno from '@unocss/preset-uno'
 import requireFresh from 'import-fresh'
-import { existsSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { existsSync } from 'fs'
+import { dirname, resolve } from 'path'
 import { resolveConfigFile } from 'prettier'
 import prettierParserHTML from 'prettier/parser-html'
 
 let sveltePlugin = null
 let rules
+
 function uniq(value) {
   return Array.from(new Set(value))
 }
@@ -124,21 +125,12 @@ export const options = {
     ],
   },
   svelteStrictMode: {
-    since: '0.7.0',
     category: 'Svelte',
     type: 'boolean',
     default: false,
     description: 'More strict HTML syntax: self-closed tags, quotes in attributes',
   },
-  svelteBracketNewLine: {
-    since: '0.6.0',
-    category: 'Svelte',
-    type: 'boolean',
-    description: 'Put the `>` of a multiline element on a new line',
-    deprecated: '2.5.0',
-  },
   svelteAllowShorthand: {
-    since: '1.0.0',
     category: 'Svelte',
     type: 'boolean',
     default: true,
@@ -146,7 +138,6 @@ export const options = {
       'Option to enable/disable component attribute shorthand if attribute name and expressions are same',
   },
   svelteIndentScriptAndStyle: {
-    since: '1.2.0',
     category: 'Svelte',
     type: 'boolean',
     default: true,
@@ -206,7 +197,4 @@ export const parsers = {
       )
     },
   },
-  // css: createParser(prettierParserPostCSS.parsers.css, transformCss),
-  // scss: createParser(prettierParserPostCSS.parsers.scss, transformCss),
-  // less: createParser(prettierParserPostCSS.parsers.less, transformCss),
 }
