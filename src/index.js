@@ -50,17 +50,17 @@ function format(input, regex, options) {
   let unoConfigPath = resolve(baseDir, 'unocss.config.cjs')
 
   if (existsSync(unoConfigPath)) {
-    console.log('config exists')
+    
 
     let unoConfig = requireFresh(unoConfigPath)
-    console.log(unoConfig)
+    
 
     rules = uniq([
       ...unoConfig.presets.flatMap((p) => toArray(p['rules'] || [])),
       ...toArray(unoConfig['rules'] || []),
     ])
   } else {
-    console.log('config does not exist')
+    
 
     rules = presetUno().rules
   }
