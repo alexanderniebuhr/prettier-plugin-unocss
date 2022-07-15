@@ -12,7 +12,7 @@
   "dependencies": {
     "@alexanderniebuhr/prettier-plugin-unocss": "0.0.1",
     "prettier-plugin-svelte": "2.6.0",
-    "svelte": "3.46.4",
+    "svelte": "3.49.0",
     "unocss": "0.26.0"
   }
 }
