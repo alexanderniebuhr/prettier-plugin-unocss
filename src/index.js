@@ -157,19 +157,13 @@ export const languages = [
 
 export const parsers = {
   html: {
-    astFormat: prettierParserHTML.parsers.html.astFormat,
-    parse: prettierParserHTML.parsers.html.parse,
-    locStart: prettierParserHTML.parsers.html.locStart,
-    locEnd: prettierParserHTML.parsers.html.locEnd,
+    ...prettierParserHTML.parsers.html,
     preprocess: (text, options) => {
       return format(text, /(?<=class=")(.*?)(?=")/g, options)
     },
   },
   vue: {
-    astFormat: prettierParserHTML.parsers.vue.astFormat,
-    parse: prettierParserHTML.parsers.vue.parse,
-    locStart: prettierParserHTML.parsers.vue.locStart,
-    locEnd: prettierParserHTML.parsers.vue.locEnd,
+    ...prettierParserHTML.parsers.vue,
     preprocess: (text, options) => {
       return format(text, /(?<=class=")(.*?)(?=")/g, options)
     },
